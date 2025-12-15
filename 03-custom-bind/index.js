@@ -15,6 +15,9 @@ function customBind(fn, context, ...boundArgs) {
 
   // Step 1: Validate that fn is a function
   // Throw TypeError if not
+  if(typeof fn !== 'function'){
+    throw new TypeError('first arg must be function');
+  }
 
   // Step 2: Create the bound function
   // It should:
@@ -26,14 +29,31 @@ function customBind(fn, context, ...boundArgs) {
   // When called as a constructor:
   //   - `this` should be a new instance, not the bound context
   //   - The prototype chain should be preserved
+  const bound = function(...args){
+    const isCalledAsConstructor = this instanceof bound;
+
+    const actualContext = isCalledAsConstructor ? this : context;
+
+    const argsFn = [...boundArgs, ...args];
+    
+    return fn.apply(actualContext, argsFn);
+  }
 
   // Step 4: Preserve the prototype for constructor usage
   // boundFunction.prototype = Object.create(fn.prototype)
+  if(fn.prototype){
+    bound.prototype = Object.create(fn.prototype);
+
+    Object.defineProperty(bound.prototype, 'constructor', {
+      value: bound,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    });
+  }
 
   // Step 5: Return the bound function
-
-  // Return placeholder that doesn't work
-  throw new Error("Not implemented");
+  return bound;
 }
 
 /**
@@ -44,8 +64,32 @@ function customBind(fn, context, ...boundArgs) {
  */
 
 // Uncomment and implement:
-// Function.prototype.customBind = function(context, ...boundArgs) {
-//   // Your implementation
-// };
+Function.prototype.customBind = function(context, ...boundArgs) {
+  const originalFn = this;
+
+  if(typeof originalFn !== 'function'){
+    throw new TypeError('Original function incompatible:'+ typeof originalFn);
+  }
+
+  const bound = function(...args){
+    const isConstructorCall = this instanceof bound;
+
+    const actualContext = isConstructorCall ? this : context;
+
+    const argsFn = boundArgs.concat(args);
+
+    return originalFn.apply(actualContext, args);
+  };
+
+  if(originalFn.prototype){
+    function Empty(){}
+    Empty.prototype = originalFn.prototype;
+    bound.prototype = new Empty();
+
+    bound.prototype.constructor = bound;
+  }
+
+  return bound;
+};
 
 module.exports = { customBind };
