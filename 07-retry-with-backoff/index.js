@@ -18,19 +18,46 @@ async function retry(fn, options = {}) {
   // TODO: Implement retry with backoff
 
   // Step 1: Extract options with defaults
-  // const {
-  //   maxRetries = 3,
-  //   initialDelay = 1000,
-  //   maxDelay = 30000,
-  //   backoff = 'exponential',
-  //   jitter = false,
-  //   retryIf = () => true,
-  //   onRetry = () => {}
-  // } = options;
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 30000,
+    backoff = 'exponential',
+    jitter = false,
+    retryIf = () => true,
+    onRetry = () => {}
+  } = options;
 
   // Step 2: Initialize attempt counter and last error
+  let lastError;
 
   // Step 3: Loop up to maxRetries + 1 (initial attempt + retries)
+  for(let attempt = 1; attempt <= maxRetries + 1; attempt++){
+    try{
+      const result = await fn();
+      return result;
+    }
+    catch (error){
+      lastError = error;
+      
+      const shouldRetry = attempt <= maxRetries && retryIf(error);
+      
+      if(!shouldRetry){
+        throw error;
+      }
+    
+      onRetry(error, attempt);
+
+      let delay = calculateDelay(backoff, attempt, initialDelay);
+      
+      delay = Math.min(delay, maxDelay);
+      
+      if(jitter){
+        delay = applyJitter(delay);
+      }
+      await sleep(delay);
+    }
+  }
 
   // Step 4: Try to execute fn
   // - On success: return result
@@ -46,7 +73,7 @@ async function retry(fn, options = {}) {
 
   // Step 6: If all retries exhausted, throw last error
 
-  throw new Error("Not implemented"); // Replace with your implementation
+  throw lastError; // Replace with your implementation
 }
 
 /**
@@ -64,7 +91,15 @@ function calculateDelay(strategy, attempt, initialDelay) {
   // Linear: delay = initialDelay * attempt
   // Exponential: delay = initialDelay * 2^(attempt-1)
 
-  throw new Error("Not implemented");
+  switch (strategy) {
+    case 'fixed':
+      return initialDelay;
+    case 'linear':
+      return initialDelay * attempt;
+    case 'exponential':
+    default:
+      return initialDelay * Math.pow(2, attempt - 1);
+  }
 }
 
 /**
@@ -77,7 +112,7 @@ function applyJitter(delay) {
   // TODO: Add 0-25% random jitter
   // return delay * (1 + Math.random() * 0.25);
 
-  throw new Error("Not implemented");
+  return delay * (1 + Math.random() * 0.25);
 }
 
 /**
