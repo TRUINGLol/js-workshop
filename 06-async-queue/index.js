@@ -13,13 +13,13 @@ class AsyncQueue {
   constructor(options = {}) {
     // TODO: Initialize the queue
     // Step 1: Extract options with defaults
-    // this.concurrency = options.concurrency || 1;
-    // this.autoStart = options.autoStart !== false;
+    this.concurrency = options.concurrency || 1;
+    this.autoStart = options.autoStart !== false;
     // Step 2: Initialize internal state
-    // this.queue = [];        // Pending tasks
-    // this.running = 0;       // Currently running count
-    // this.paused = false;    // Paused state
-    // this.emptyCallbacks = []; // Callbacks for empty event
+    this.queue = [];        // Pending tasks
+    this.running = 0;       // Currently running count
+    this.paused = !this.autoStart;    // Paused state
+    this.emptyCallbacks = []; // Callbacks for empty event
   }
 
   /**
@@ -33,16 +33,31 @@ class AsyncQueue {
     // TODO: Implement add
 
     // Step 1: Create a new Promise and store its resolve/reject
+    let entryResolve, entryReject;
+    const promise = new Promise((res, rej)=>{
+      entryResolve = res;
+      entryReject = rej;
+    });
 
     // Step 2: Create task entry with: task, priority, resolve, reject
+    const taskEntry = {
+      task,
+      priority: options.priority ?? 0,
+      resolve: entryResolve,
+      reject: entryReject,
+    };
 
     // Step 3: Add to queue (consider priority ordering)
+    this.queue.push(taskEntry);
+    this.queue.sort((a, b) => b.priority - a.priority);
 
     // Step 4: Try to process if autoStart and not paused
+    if(this.autoStart && !this.paused){
+      this._process();
+    }
 
     // Step 5: Return the promise
-
-    return Promise.resolve(); // Replace with your implementation
+    return promise;
   }
 
   /**
@@ -51,6 +66,8 @@ class AsyncQueue {
   start() {
     // TODO: Implement start
     // Set paused to false and trigger processing
+    this.paused = false;
+    this._process();
   }
 
   /**
@@ -59,6 +76,7 @@ class AsyncQueue {
   pause() {
     // TODO: Implement pause
     // Set paused to true
+    this.paused = true;
   }
 
   /**
@@ -68,6 +86,7 @@ class AsyncQueue {
     // TODO: Implement clear
     // Empty the queue array
     // Optionally: reject pending promises with an error
+    this.queue.length = 0;
   }
 
   /**
@@ -77,6 +96,7 @@ class AsyncQueue {
   onEmpty(callback) {
     // TODO: Implement onEmpty
     // Store callback to be called when size becomes 0 and nothing running
+    this.emptyCallbacks.push(callback);
   }
 
   /**
@@ -85,7 +105,7 @@ class AsyncQueue {
    */
   get size() {
     // TODO: Return queue length
-    throw new Error("Not implemented");
+    return this.queue.length;
   }
 
   /**
@@ -94,7 +114,7 @@ class AsyncQueue {
    */
   get pending() {
     // TODO: Return running count
-    throw new Error("Not implemented");
+    return this.running;
   }
 
   /**
@@ -103,7 +123,7 @@ class AsyncQueue {
    */
   get isPaused() {
     // TODO: Return paused state
-    throw new Error("Not implemented");
+    return this.paused;
   }
 
   /**
@@ -116,6 +136,21 @@ class AsyncQueue {
     // - Not paused
     // - Running count < concurrency
     // - Queue has items
+    while(this.running < this.concurrency && !this.paused && this.queue.length !== 0){
+      const entry = this.queue.shift();
+      this.running++;
+
+      Promise.resolve(entry.task())
+        .then(
+          value => entry.resolve(value),
+          error => entry.reject(error)
+        )
+        .finally(()=>{
+          this.running--;
+          this._checkEmpty();
+          this._process();
+        });
+    }
     // Step 2: Take task from queue (respect priority)
     // Step 3: Increment running count
     // Step 4: Execute task and handle result
@@ -130,6 +165,10 @@ class AsyncQueue {
    */
   _checkEmpty() {
     // TODO: If queue is empty and nothing running, call empty callbacks
+    if(this.queue.length === 0 && this.running === 0){
+      this.emptyCallbacks.forEach(callback => callback());
+      this.emptyCallbacks.length = 0;
+    }
   }
 }
 
