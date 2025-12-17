@@ -12,8 +12,10 @@ class LRUCache {
     // TODO: Initialize the cache
     // Step 1: Store capacity
     // this.capacity = capacity;
+    this.capacity = capacity;
     // Step 2: Create storage (Map recommended)
     // this.cache = new Map();
+    this.cache = new Map();
   }
 
   /**
@@ -25,15 +27,21 @@ class LRUCache {
     // TODO: Implement get
 
     // Step 1: Check if key exists
+    if(!this.cache.has(key)){
+      return undefined;
+    }
 
     // Step 2: If exists:
     //   - Get the value
     //   - Move to end (most recent)
     //   - Return value
+    const value = this.cache.get(key);
+
+    this.cache.delete(key);
+    this.cache.set(key, value);
 
     // Step 3: If not exists, return undefined
-
-    throw new Error("Not implemented");
+    return value;
   }
 
   /**
@@ -44,8 +52,16 @@ class LRUCache {
   put(key, value) {
     // TODO: Implement put
     // Step 1: If key already exists, delete it first (to update position)
+    if(this.cache.has(key)){
+      this.cache.delete(key);
+    }
     // Step 2: If at capacity, evict least recently used (first item)
+    if(this.cache.size >= this.capacity){
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
     // Step 3: Add the new key-value pair (goes to end = most recent)
+    this.cache.set(key, value);
   }
 
   /**
@@ -55,8 +71,7 @@ class LRUCache {
    */
   has(key) {
     // TODO: Implement has
-
-    throw new Error("Not implemented");
+    return this.cache.has(key);
   }
 
   /**
@@ -66,8 +81,7 @@ class LRUCache {
    */
   delete(key) {
     // TODO: Implement delete
-
-    throw new Error("Not implemented");
+    return this.cache.delete(key);
   }
 
   /**
@@ -75,7 +89,7 @@ class LRUCache {
    */
   clear() {
     // TODO: Implement clear
-    throw new Error("Not implemented");
+    this.cache.clear();
   }
 
   /**
@@ -84,8 +98,7 @@ class LRUCache {
    */
   get size() {
     // TODO: Return current size
-
-    throw new Error("Not implemented");
+    return this.cache.size;
   }
 
   /**
@@ -94,8 +107,7 @@ class LRUCache {
    */
   keys() {
     // TODO: Return array of keys
-
-    throw new Error("Not implemented");
+    return Array.from(this.cache.keys());
   }
 
   /**
@@ -104,8 +116,7 @@ class LRUCache {
    */
   values() {
     // TODO: Return array of values
-
-    throw new Error("Not implemented");
+    return Array.from(this.cache.values());
   }
 }
 
