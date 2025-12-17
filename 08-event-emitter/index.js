@@ -49,12 +49,19 @@ class EventEmitter {
 
     // Step 2: Find and remove the listener
     // Note: Handle wrapped 'once' listeners
+    let indexToRemove = -1;
+
     for(let i = listeners.length - 1; i >= 0; i--){
       const currentListener = listeners[i];
       
       if(currentListener === listener || currentListener.listener === listener){
-        listeners.splice(i, 1);
+        indexToRemove = i;
+        break;
       }
+    }
+
+    if(indexToRemove !== -1){
+      listeners.splice(indexToRemove, 1);
     }
 
     if(listeners.length === 0){
