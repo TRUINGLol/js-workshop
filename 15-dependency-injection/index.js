@@ -4,7 +4,7 @@
 class Container {
   constructor() {
     // TODO: Initialize registry
-    // this.registry = new Map();
+    this.registry = new Map();
   }
 
   /**
@@ -19,6 +19,19 @@ class Container {
     // TODO: Implement register
     // Store in registry:
     // { type: 'class', Class, dependencies, singleton, instance: null }
+    if(typeof Class !== 'function'){
+      throw new Error('must be function');
+    }
+
+    this.registry.set(name,{
+      type: 'class',
+      Class,
+      dependencies,
+      singleton: !!options.singleton,
+      instance: null
+    });
+    
+    return this;
   }
 
   /**
@@ -30,6 +43,16 @@ class Container {
     // TODO: Implement registerInstance
     // Store in registry:
     // { type: 'instance', instance }
+    if(instance === undefined || instance === null){
+      throw new Error('cannot be null or undefined');
+    }
+
+    this.registry.set(name,{
+      type: 'instance',
+      instance
+    });
+    
+    return this;
   }
 
   /**
@@ -43,6 +66,19 @@ class Container {
     // TODO: Implement registerFactory
     // Store in registry:
     // { type: 'factory', factory, dependencies, singleton, instance: null }
+    if(typeof factory !== 'function'){
+      throw new Error('must be a function');
+    }
+
+    this.registry.set(name,{
+      type: 'factory',
+      factory,
+      dependencies,
+      singleton: !!options.singleton,
+      instance: null
+    });
+    
+    return this;
   }
 
   /**
@@ -56,13 +92,52 @@ class Container {
 
     // Step 1: Check if service is registered
     // Throw error if not found
+    if(!this.registry.has(name)){
+      throw new Error('not registered');
+    }
 
     // Step 2: Check for circular dependencies
     // If name is already in resolutionStack, throw error
+    if(resolutionStack.has(name)){
+      throw new Error('Circular dependency detected');
+    }
 
     // Step 3: Get registration from registry
+    const registration = this.registry.get(name);
 
     // Step 4: Handle different types:
+    switch (registration.type) {
+      case 'instance':
+        return registration.instance;
+
+      case 'class':
+      case 'factory':
+        if(registration.singleton && registration.instance){
+          return registration.instance;
+        }
+
+        resolutionStack.add(name);
+
+        const dependencies = registration.dependencies.map(depName=>this.resolve(depName, resolutionStack));
+
+        resolutionStack.delete(name);
+
+        let instance;
+        if(registration.type === 'class'){
+          instance = new registration.Class(...dependencies);
+        }
+        else{
+          instance = registration.factory(...dependencies);
+        }
+
+        if(registration.singleton){
+          registration.instance = instance;
+        }
+        return instance;
+
+      default:
+        throw new Error('unknown type');
+    }
 
     // For 'instance':
     //   - Return the stored instance
@@ -75,9 +150,6 @@ class Container {
     //   - Remove name from resolutionStack
     //   - If singleton, cache instance
     //   - Return instance
-
-    // Broken: returns undefined (causes test assertions to fail)
-    return undefined;
   }
 
   /**
@@ -87,7 +159,7 @@ class Container {
    */
   has(name) {
     // TODO: Implement has
-    throw new Error("Not implemented");
+    return this.registry.has(name);
   }
 
   /**
@@ -97,7 +169,7 @@ class Container {
    */
   unregister(name) {
     // TODO: Implement unregister
-    throw new Error("Not implemented");
+    return this.registry.delete(name);
   }
 
   /**
@@ -105,7 +177,8 @@ class Container {
    */
   clear() {
     // TODO: Implement clear
-    throw new Error("Not implemented");
+    this.registry.clear();
+    return this;
   }
 
   /**
@@ -114,7 +187,7 @@ class Container {
    */
   getRegistrations() {
     // TODO: Implement getRegistrations
-    throw new Error("Not implemented");
+    return Array.from(this.registry.keys());
   }
 }
 
@@ -133,7 +206,19 @@ function createChildContainer(parent) {
 
   const child = new Container();
   // Override resolve to check parent...
-  return child;
+  const originalResolve = child.resolve.bind(child);
+
+  child.resolve = function(name, resolutionStack = new Set()){
+    if(this.registry.has(name)){
+      return originalResolve(name, resolutionStack);
+    }
+
+    if(parent && typeof parent.resolve === 'function'){
+      return parent.resolve(name, resolutionStack);
+    }
+    
+    throw new Error(`no registration`);
+  };
 }
 
 // Example classes for testing
