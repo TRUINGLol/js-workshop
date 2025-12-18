@@ -71,11 +71,31 @@ const ShapeFactory = {
    */
   create(type, options) {
     // TODO: Implement factory logic
+    switch(type.toLowerCase()){
+      case 'circle':
+        if(!options.radius){
+          throw new Error('radius required');
+        }
+        return new Circle(options);
+      
+      case 'rectangle':
+        if(!options.width || !options.height){
+          throw new Error('width and height required');
+        }
+        return new Rectangle(options);
+      
+      case 'triangle':
+        if(!options.base || !options.height){
+          throw new Error('base and height required');
+        }
+        return new Triangle(options);
+
+      default:
+        throw new Error('unknown type');
+    }
 
     // Use switch or object lookup to create the right shape
     // Throw error for unknown types
-
-    return null; // Replace with implementation
   },
 };
 
@@ -88,6 +108,7 @@ class Factory {
   constructor() {
     // TODO: Initialize registry
     // this.registry = new Map();
+    this.registry = new Map();
   }
 
   /**
@@ -101,6 +122,12 @@ class Factory {
   register(type, Class, options = {}) {
     // TODO: Implement register
     // Store the class and options in the registry
+    if(typeof Class !== 'function'){
+      throw new Error('must be a constructor function');
+    }
+
+    this.registry.set(type, { Class, options });
+    return this;
   }
 
   /**
@@ -110,8 +137,7 @@ class Factory {
    */
   unregister(type) {
     // TODO: Implement unregister
-
-    throw new Error("Not implemented");
+    return this.registry.delete(type);
   }
 
   /**
@@ -124,16 +150,37 @@ class Factory {
     // TODO: Implement create
 
     // Step 1: Check if type is registered
+    if(!this.registry.has(type)){
+      throw new Error('not registered');
+    }
 
     // Step 2: Get the class and options
+    const {Class, options} = this.registry.get(type);
 
     // Step 3: Validate required fields (if specified)
+    if(options.required){
+      for(const field of options.required){
+        if(!(field in args)){
+          throw new Error('Missing field');
+        }
+      }
+    }
 
     // Step 4: Run custom validation (if specified)
+    if(options.validate && typeof options.validate === 'function'){
+      const validationResult = options.validate(args);
+      if(validationResult !== true){
+        throw new Error('Validation failed');
+      }
+    }
 
     // Step 5: Create and return instance
-
-    return null; // Replace with implementation
+    try{
+      return new Class(args);
+    }
+    catch(error){
+      throw new Error('failed to create instance');
+    }
   }
 
   /**
@@ -143,8 +190,7 @@ class Factory {
    */
   has(type) {
     // TODO: Implement has
-
-    throw new Error("Not implemented");
+    return this.registry.has(type);
   }
 
   /**
@@ -153,8 +199,7 @@ class Factory {
    */
   getTypes() {
     // TODO: Implement getTypes
-
-    throw new Error("Not implemented");
+    return Array.from(this.registry.keys());
   }
 
   /**
@@ -162,7 +207,8 @@ class Factory {
    */
   clear() {
     // TODO: Implement clear
-    throw new Error("Not implemented");
+    this.registry.clear();
+    return this;
   }
 }
 
