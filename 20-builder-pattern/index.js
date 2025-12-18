@@ -10,11 +10,12 @@
 class QueryBuilder {
   constructor() {
     // TODO: Initialize state
-    // this.selectCols = [];
-    // this.fromTable = null;
-    // this.whereClauses = [];
-    // this.orderByClauses = [];
-    // this.limitCount = null;
+    this.selectCols = [];
+    this.fromTable = null;
+    this.whereClauses = [];
+    this.orderByClauses = [];
+    this.limitCount = null;
+    this.reset();
   }
 
   /**
@@ -24,7 +25,8 @@ class QueryBuilder {
    */
   select(...columns) {
     // TODO: Store columns
-    throw new Error("Not implemented");
+    this.selectCols = columns.length > 0 ? columns : ['*'];
+    return this;
   }
 
   /**
@@ -34,7 +36,8 @@ class QueryBuilder {
    */
   from(table) {
     // TODO: Store table name
-    throw new Error("Not implemented");
+    this.fromTable = table;
+    return this;
   }
 
   /**
@@ -46,7 +49,8 @@ class QueryBuilder {
    */
   where(column, operator, value) {
     // TODO: Store where clause
-    throw new Error("Not implemented");
+    this.whereClauses.push({ column, operator, value });
+    return this;
   }
 
   /**
@@ -57,7 +61,8 @@ class QueryBuilder {
    */
   orderBy(column, direction = "ASC") {
     // TODO: Store order by clause
-    throw new Error("Not implemented");
+    this.orderByClauses.push({column, direction: direction.toUpperCase()});
+    return this;
   }
 
   /**
@@ -67,7 +72,8 @@ class QueryBuilder {
    */
   limit(count) {
     // TODO: Store limit
-    throw new Error("Not implemented");
+    this.limitCount = count;
+    return this;
   }
 
   /**
@@ -77,7 +83,33 @@ class QueryBuilder {
   build() {
     // TODO: Build and return query string
     // Format: SELECT cols FROM table WHERE clauses ORDER BY clause LIMIT n
-    throw new Error("Not implemented");
+  
+    if(!this.fromTable){
+      throw new Error("no table");
+    }
+    
+    let query = `SELECT ${this.selectCols.join(', ')} FROM ${this.fromTable}`;
+    
+    if(this.whereClauses.length > 0){
+      const whereParts = this.whereClauses.map(clause=>{
+        const value = typeof clause.value === 'string' ? `'${clause.value}'` : clause.value;
+        return `${clause.column} ${clause.operator} ${value}`;
+      });
+      query += ` WHERE ${whereParts.join(' AND ')}`;
+    }
+    
+    if(this.orderByClauses.length > 0){
+      const orderByParts = this.orderByClauses.map(clause=> 
+        `${clause.column} ${clause.direction}`
+      );
+      query += ` ORDER BY ${orderByParts.join(', ')}`;
+    }
+    
+    if(this.limitCount !== null){
+      query += ` LIMIT ${this.limitCount}`;
+    }
+    
+    return query;
   }
 
   /**
@@ -86,7 +118,12 @@ class QueryBuilder {
    */
   reset() {
     // TODO: Reset all state
-    throw new Error("Not implemented");
+    this.selectCols = ['*'];
+    this.fromTable = null;
+    this.whereClauses = [];
+    this.orderByClauses = [];
+    this.limitCount = null;
+    return this;
   }
 }
 
@@ -98,12 +135,7 @@ class QueryBuilder {
 class HTMLBuilder {
   constructor() {
     // TODO: Initialize state
-    // this.tagName = 'div';
-    // this.idAttr = null;
-    // this.classes = [];
-    // this.attributes = {};
-    // this.innerContent = '';
-    // this.children = [];
+    this.reset();
   }
 
   /**
@@ -113,7 +145,8 @@ class HTMLBuilder {
    */
   tag(name) {
     // TODO: Store tag name
-    throw new Error("Not implemented");
+    this.tagName = name;
+    return this;
   }
 
   /**
@@ -123,7 +156,8 @@ class HTMLBuilder {
    */
   id(id) {
     // TODO: Store id
-    throw new Error("Not implemented");
+    this.idAttr = id;
+    return this;
   }
 
   /**
@@ -133,7 +167,8 @@ class HTMLBuilder {
    */
   class(...classNames) {
     // TODO: Store classes
-    throw new Error("Not implemented");
+    this.classes.push(...classNames);
+    return this;
   }
 
   /**
@@ -144,7 +179,8 @@ class HTMLBuilder {
    */
   attr(name, value) {
     // TODO: Store attribute
-    throw new Error("Not implemented");
+    this.attributes[name] = value;
+    return this;
   }
 
   /**
@@ -154,7 +190,8 @@ class HTMLBuilder {
    */
   content(content) {
     // TODO: Store content
-    throw new Error("Not implemented");
+    this.innerContent = content;
+    return this;
   }
 
   /**
@@ -164,7 +201,8 @@ class HTMLBuilder {
    */
   child(childHtml) {
     // TODO: Store child
-    throw new Error("Not implemented");
+    this.children.push(childHtml);
+    return this;
   }
 
   /**
@@ -174,7 +212,40 @@ class HTMLBuilder {
   build() {
     // TODO: Build and return HTML string
     // Format: <tag id="..." class="..." attrs>content</tag>
-    throw new Error("Not implemented");
+    if(!this.tagName){
+      throw new Error("no tag");
+    }
+
+    let html = `<${this.tagName}`;
+    
+    if(this.idAttr){
+      html += ` id="${this.idAttr}"`;
+    }
+
+    if(this.classes.length > 0){
+      html += ` class="${this.classes.join(' ')}"`;
+    }
+
+    Object.entries(this.attributes).forEach(([name, value])=>{
+      html += ` ${name}="${value}"`;
+    });
+    
+    html += '>';
+
+    if(this.innerContent){
+      html += this.innerContent;
+    }
+    
+    if(this.children.length > 0){
+      html += this.children.join('');
+    }
+
+    const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+    if (!voidElements.includes(this.tagName.toLowerCase())){
+      html += `</${this.tagName}>`;
+    }
+    
+    return html;
   }
 
   /**
@@ -183,7 +254,13 @@ class HTMLBuilder {
    */
   reset() {
     // TODO: Reset all state
-    throw new Error("Not implemented");
+    this.tagName = 'div';
+    this.idAttr = null;
+    this.classes = [];
+    this.attributes = {};
+    this.innerContent = '';
+    this.children = [];
+    return this;
   }
 }
 
@@ -201,6 +278,12 @@ class ConfigBuilder {
     //   features: [],
     //   logLevel: 'info'
     // };
+    this.config = {
+      environment: 'development',
+      database: null,
+      features: [],
+      logLevel: 'info'
+    };
   }
 
   /**
@@ -210,7 +293,8 @@ class ConfigBuilder {
    */
   setEnvironment(env) {
     // TODO: Set environment
-    throw new Error("Not implemented");
+    this.config.environment = env;
+    return this;
   }
 
   /**
@@ -220,7 +304,8 @@ class ConfigBuilder {
    */
   setDatabase(dbConfig) {
     // TODO: Set database config
-    throw new Error("Not implemented");
+    this.config.database = dbConfig;
+    return this;
   }
 
   /**
@@ -230,7 +315,10 @@ class ConfigBuilder {
    */
   enableFeature(feature) {
     // TODO: Add feature to list
-    throw new Error("Not implemented");
+    if(!this.config.features.includes(feature)){
+      this.config.features.push(feature);
+    }
+    return this;
   }
 
   /**
@@ -240,7 +328,11 @@ class ConfigBuilder {
    */
   disableFeature(feature) {
     // TODO: Remove feature from list
-    throw new Error("Not implemented");
+    const index = this.config.features.indexOf(feature);
+    if(index > -1){
+      this.config.features.splice(index, 1);
+    }
+    return this;
   }
 
   /**
@@ -250,7 +342,8 @@ class ConfigBuilder {
    */
   setLogLevel(level) {
     // TODO: Set log level
-    throw new Error("Not implemented");
+    this.config.logLevel = level;
+    return this;
   }
 
   /**
@@ -259,7 +352,7 @@ class ConfigBuilder {
    */
   build() {
     // TODO: Return copy of config
-    throw new Error("Not implemented");
+    return JSON.parse(JSON.stringify(this.config));
   }
 }
 
@@ -271,6 +364,14 @@ class ConfigBuilder {
 class RequestBuilder {
   constructor(baseUrl = "") {
     // TODO: Initialize state
+    this.baseUrl = baseUrl;
+    this.urlPath = '';
+    this.queryParams = {};
+    this.requestConfig = {
+      method: 'GET',
+      headers: {},
+      body: null
+    };
   }
 
   /**
@@ -279,7 +380,8 @@ class RequestBuilder {
    * @returns {RequestBuilder} this
    */
   method(method) {
-    throw new Error("Not implemented");
+    this.requestConfig.method = method.toUpperCase();
+    return this;
   }
 
   /**
@@ -288,7 +390,8 @@ class RequestBuilder {
    * @returns {RequestBuilder} this
    */
   path(path) {
-    throw new Error("Not implemented");
+    this.urlPath = path;
+    return this;
   }
 
   /**
@@ -298,7 +401,8 @@ class RequestBuilder {
    * @returns {RequestBuilder} this
    */
   query(key, value) {
-    throw new Error("Not implemented");
+    this.queryParams[key] = value;
+    return this;
   }
 
   /**
@@ -308,7 +412,8 @@ class RequestBuilder {
    * @returns {RequestBuilder} this
    */
   header(key, value) {
-    throw new Error("Not implemented");
+    this.requestConfig.headers[key] = value;
+    return this;
   }
 
   /**
@@ -317,7 +422,15 @@ class RequestBuilder {
    * @returns {RequestBuilder} this
    */
   body(body) {
-    throw new Error("Not implemented");
+    this.requestConfig.body = body;
+
+    if(typeof body === 'object' && body !== null && !Array.isArray(body)){
+      if(!this.requestConfig.headers['Content-Type']){
+        this.requestConfig.headers['Content-Type'] = 'application/json';
+      }
+    }
+    
+    return this;
   }
 
   /**
@@ -326,7 +439,24 @@ class RequestBuilder {
    */
   build() {
     // TODO: Return fetch-compatible config
-    throw new Error("Not implemented");
+
+    let url = this.baseUrl;
+    if(this.urlPath){
+      url += this.urlPath;
+    }
+
+    const queryString = Object.entries(this.queryParams)
+      .map(([key, value])=>`${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+    
+    if(queryString){
+      url += (url.includes('?') ? '&' : '?') + queryString;
+    }
+
+    return {
+      url,
+      ...this.requestConfig
+    };
   }
 }
 
